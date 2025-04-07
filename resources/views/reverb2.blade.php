@@ -17,7 +17,7 @@
 
 <script type="module">
     let currentRequestId = null;
-    window.Echo.private('drivers.8')
+    window.Echo.private('drivers.2')
         .listen('.ride.request', (e) => {
             console.log('رویداد دریافت شد: ', e);
             currentRequestId = e.requestId;
@@ -35,7 +35,7 @@
             document.getElementById('acceptButton').style.display = 'none'; // دکمه رو مخفی کن
         })
         .subscribed(() => {
-            console.log('با موفقیت به کانل راننده ۸ وصل شدم');
+            console.log('با موفقیت به کانال راننده ۲ وصل شدم');
             document.getElementById('messages').innerHTML += '<p>وصل شدم به کانال</p>';
         })
         .error((error) => {
@@ -69,9 +69,9 @@
             'riderAcceptRequest',   // Event Name
             {
                 requestId: currentRequestId,
-                driverId: 8 // یا ID راننده فعلی
+                driverId: 2 // یا ID راننده فعلی
             },  // data
-            'private-driver.8',
+            'private-driver.2',
         );
 
         // Echo.private('drivers.8').whisper('accepted', {

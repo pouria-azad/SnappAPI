@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CompleteRideRequest;
 use App\Interfaces\Controllers\TripInterface;
+use App\Interfaces\Services\RideCompletionServiceInterface;
 use App\Services\RideCompletionService;
 
 use Illuminate\Http\JsonResponse;
@@ -14,7 +15,7 @@ class RideController extends Controller implements TripInterface
 
     private RideCompletionService $rideCompletionService;
 
-    public function __construct(RideCompletionService $rideCompletionService)
+    public function __construct(RideCompletionServiceInterface $rideCompletionService)
     {
         $this->rideCompletionService = $rideCompletionService;
     }
@@ -75,7 +76,7 @@ class RideController extends Controller implements TripInterface
     {
         try {
             $total_time = $this->rideCompletionService->completeRide($request->trip_id);
-            
+
             return response()->json([
                 'message' => 'Ride completed successfully',
                 'data' => [
@@ -94,5 +95,5 @@ class RideController extends Controller implements TripInterface
             ], 500);
         }
     }
-    
+
 }

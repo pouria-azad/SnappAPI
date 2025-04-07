@@ -19,7 +19,7 @@ class RideCompletionService implements RideCompletionServiceInterface
 
         $rideData = collect($currentRide->getAttributes())
             ->put('total_time', $totalTimeInHours)
-            ->except(['updated_at', 'created_at'])
+            ->except(['updated_at', 'created_at', 'isArrived'])
             ->all();
 
         Driver::findOrFail($currentRide['driver_id'])->update(['is_active' => true]);

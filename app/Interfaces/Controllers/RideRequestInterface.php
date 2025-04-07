@@ -8,5 +8,4 @@ use Illuminate\Http\JsonResponse;
 interface RideRequestInterface
 {
     public function store(NewRideRequestRequest $request): JsonResponse;
-    public function accept(AcceptRideRequestRequest $request): JsonResponse;
 }

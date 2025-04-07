@@ -24,10 +24,8 @@ Route::group(['prefix'=> 'drivers'], function () {
     Route::post('logout', [DriverAuthController::class,'logout'])->middleware('auth:sanctum,driver');
 });
 
-Route::group(['prefix'=> 'ride-requests'], function () {
-    Route::post('store', [RideRequestController::class, 'store'])->middleware('auth:sanctum,user');
-
-    Route::post('accept', [RideRequestController::class,'accept'])->middleware('auth:sanctum,driver');
-});
+Route::post('ride-requests/store', [RideRequestController::class, 'store'])->middleware('auth:sanctum,user');
+Route::get('ride-requests/cancel', [RideRequestController::class, 'cancel'])->middleware('auth:user');
 
 Route::post('ride/complete', [RideController::class,'complete'])->middleware('auth:sanctum,driver');
+

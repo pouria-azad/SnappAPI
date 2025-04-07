@@ -2,43 +2,42 @@
 
 namespace App\Events;
 
-use App\Service\TripService;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class RideRequestConfirmed implements ShouldBroadcast, ShouldDispatchAfterCommit
+class RideRequestConfirmedByOthers implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $driverId;
+    public $driverIds;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(int $driverId)
+    public function __construct($driverIds)
     {
-        $this->driverId = $driverId;
-
+        $this->driverIds = $driverIds;
     }
 
     /**
      * Get the channels the event should broadcast on.
      *
-     * @return PrivateChannel
+     * @return array<int, \Illuminate\Broadcasting\Channel>
      */
-    public function broadcastOn(): PrivateChannel
+    public function broadcastOn(): array
     {
-        return new PrivateChannel("drivers.{$this->driverId}");
+        return collect($this->driverIds)
+            ->map(fn($driverId) => new PrivateChannel("drivers.{$driverId}"))
+            ->all();
     }
 
     public function broadcastAs(): string
     {
-        return 'rideRequest.confirmed';
+        return 'rideRequest.confirmedByOthers';
     }
 }

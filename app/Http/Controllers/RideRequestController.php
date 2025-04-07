@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\RideRequestConfirmed;
 use App\Events\RideRequestCreated;
 use App\Http\Requests\AcceptRideRequestRequest;
+use App\Http\Requests\CancelRideRequestRequest;
 use App\Http\Requests\NewRideRequestRequest;
 use App\Interfaces\Controllers\RideRequestInterface;
 use App\Models\CurrentRide;
@@ -12,13 +13,12 @@ use App\Models\Driver;
 use App\Models\RideRequest;
 use App\Services\RidePreparationService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Http\Request;
 
 class RideRequestController extends Controller implements RideRequestInterface
 {
 
-    public $ridePreparationService;
+    public RidePreparationService $ridePreparationService;
 
     public function __construct(RidePreparationService $ridePreparationService){
         $this->ridePreparationService = $ridePreparationService;
@@ -145,120 +145,20 @@ class RideRequestController extends Controller implements RideRequestInterface
 
     }
 
-
-    /**
-     * @OA\Post(
-     *     path="/api/ride-requests/accept",
-     *     summary="Accept a ride request by a driver",
-     *     tags={"Ride Requests"},
-     *     security={{"Bearer": {}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             type="object",
-     *             required={"request_id"},
-     *             @OA\Property(property="request_id", type="integer", example=1, description="The ID of the ride request")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Ride request accepted successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Ride request accepted successfully"),
-     *             @OA\Property(property="request_id", type="integer", example=1),
-     *             @OA\Property(property="driver_id", type="integer", example=2),
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="object",
-     *                 @OA\Property(property="id", type="integer", example=1, description="ID of the acceptance record"),
-     *                 @OA\Property(property="driver_id", type="integer", example=2, description="Driver ID"),
-     *                 @OA\Property(property="request_id", type="integer", example=1, description="Ride request ID")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Bad request due to already accepted request or driver assignment",
-     *         @OA\JsonContent(
-     *             oneOf={
-     *                 @OA\Schema(
-     *                     @OA\Property(property="message", type="string", example="This ride request has already been accepted")
-     *                 ),
-     *                 @OA\Schema(
-     *                     @OA\Property(property="message", type="string", example="This driver is already assigned to another ride")
-     *                 )
-     *             }
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Driver not authenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthorized. Please log in.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Server error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="An error occurred while accepting the ride request"),
-     *             @OA\Property(property="error", type="string", example="Detailed error message", nullable=true)
-     *         )
-     *     )
-     * )
-     */
-    public function accept(AcceptRideRequestRequest $request): JsonResponse
+    public function cancel(Request $request): JsonResponse
     {
-        try {
-            $validatedData = collect($request->validated())
-            ->put('driver_id', $request->user('driver')->id)
-            ->put('user_id', RideRequest::findOrFail($request->request_id)->select('user_id')->first()->user_id ?? null)
-            ->all();
+        $userId = $request->user('user')->id;
 
-            // Check if the request is already accepted
-            if (CurrentRide::where('request_id', $validatedData['request_id'])->exists()) {
-                return response()->json([
-                    'message' => 'This ride request has already been accepted',
-                ], 400);
-            }
+        $pendingRideRequest = RideRequest::where('user_id', $userId)
+            ->where('isPending', true)
+            ->first();
 
-            // Check if the driver is already assigned to another ride
-            if (CurrentRide::where('driver_id', $validatedData['driver_id'])->exists()) {
-                return response()->json([
-                    'message' => 'This driver is already assigned to another ride',
-                ], 400);
-            }
-
-            // Update the ride request status
-            RideRequest::findOrFail($validatedData['request_id'])->update(['isPending' => false]);
-
-            // Update driver id status
-            Driver::findOrFail($validatedData['driver_id'])->update(['is_active' => false]);
-
-            // Create a new current ride
-            $currentRide = CurrentRide::create($validatedData);
-
-            // Trigger event
-            event(new RideRequestConfirmed($validatedData['driver_id'], $rideRequest->user_id));
-
-            // Return detailed response
-            return response()->json([
-                'message' => 'Ride request accepted successfully',
-                'request_id' => $rideRequest->id,
-                'driver_id' => $validatedData['driver_id'],
-                'data' => $currentRide->only(['id', 'driver_id', 'request_id'])
-            ], 200);
-        } catch (\Exception $e) {
-            \Log::error('Failed to accept ride request', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'data' => $request->all(),
-            ]);
-
-            return response()->json([
-                'message' => 'An error occurred while accepting the ride request',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+        if ($pendingRideRequest) {
+            $pendingRideRequest->delete();
+            return response()->json(status:204);
         }
+        return response()->json([
+            "message" => "No Pending Request!",
+        ], 404);
     }
 }
